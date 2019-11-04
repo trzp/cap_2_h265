@@ -1,9 +1,10 @@
 ﻿#include "H265EncoderTang.h"
 #include <thread>
+#include <time.h>
 
 int main(int argc, char** argv)
 {
-	H265EncoderTang coder265(640, 480, 20);
+	H265EncoderTang coder265(640, 480, 25);
 
 	thread th(&H265EncoderTang::mainLoop, std::ref(coder265));
 	th.detach();
@@ -16,6 +17,8 @@ int main(int argc, char** argv)
 	if (!cap.isOpened())
 		return 0;
 
+	int btime = clock();
+	int ltime;
 	while (1)
 	{
 		cap >> frame;
@@ -25,8 +28,14 @@ int main(int argc, char** argv)
 		coder265.encodeNewFrame(frame);
 
 		imshow("video", frame);
-		key = waitKey(100);//每帧延时20毫秒
+		key = waitKey(30);
 		if (key == 27)
+		{
+			break;
+		}
+
+		ltime = clock();
+		if (ltime - btime >= 20000)
 		{
 			break;
 		}

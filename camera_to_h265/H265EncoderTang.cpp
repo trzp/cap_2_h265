@@ -4,6 +4,9 @@
 //thread th(&H265EncoderTang::mainLoop, std::ref(coder265)); //coder265为类的实例
 //th.detach();
 
+//h265编码相同的内容，为h264的大约1/4
+//h265效率更高，画质更好
+
 H265EncoderTang::H265EncoderTang()
 {
 }
@@ -161,12 +164,6 @@ shared_ptr<unsigned char> H265EncoderTang::getYuv()
 		shared_ptr<unsigned char> yuvBuf(nullptr);
 		{
 			lock_guard<mutex> lock(this->g_i_mutex);
-
-			//if (!frameQue.empty())
-			//{
-			//	yuvBuf = frameQue.front();
-			//	frameQue.pop();
-			//}
 
 			while (!this->frameQue.empty())	//取最新帧，且清空。避免帧速过高时处理不过来
 			{
