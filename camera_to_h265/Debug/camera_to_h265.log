@@ -1,0 +1,6 @@
+﻿  H265EncoderTang.cpp
+E:\Cap_to_H265\camera_to_h265\H265EncoderTang.cpp(118): warning C4018: “<”: 有符号/无符号不匹配
+E:\Cap_to_H265\camera_to_h265\H265EncoderTang.cpp(134): warning C4018: “<”: 有符号/无符号不匹配
+E:\Cap_to_H265\camera_to_h265\H265EncoderTang.cpp(92): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.17763.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+  camera_to_h265.vcxproj -> E:\Cap_to_H265\Debug\camera_to_h265.exe
