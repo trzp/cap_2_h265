@@ -15,7 +15,7 @@ H265EncoderTang::~H265EncoderTang()
 {
 }
 
-H265EncoderTang::H265EncoderTang(int width, int height, int fps)
+void H265EncoderTang::init_encoder(int width, int height, int fps)
 {
 	this->width = width;
 	this->height = height;
@@ -75,6 +75,21 @@ H265EncoderTang::H265EncoderTang(int width, int height, int fps)
 	this->yuvBuffer = shared_ptr<unsigned char>(new unsigned char[this->yuvLen], [](unsigned char* p) {delete[] p; });
 }
 
+void H265EncoderTang::coderInit(int width, int height, int fps,string filename)
+{
+	char* file = (char*)filename.data();
+	this->fp_dst = fopen(file, "wb");
+	this->file_on = true;
+	this->init_encoder(width,height,fps);
+}
+
+void H265EncoderTang::coderInit(int width, int height, int fps, string ip, short port)
+{
+	this->udp.set_remote_addr(ip,port);
+	this->upd_on = true;
+	this->init_encoder(width, height, fps);
+}
+
 void H265EncoderTang::encodeNewFrame(Mat frame)
 {
 	cvtColor(frame, this->yuvImg, CV_BGR2YUV_I420);
@@ -91,11 +106,12 @@ void H265EncoderTang::mainLoop()
 	uint32_t iNal = 0;
 	int ret;
 
-	FILE* fp_dst = NULL;
-	fp_dst = fopen("test.h265", "wb");
+	int count = 0;
+	bool w = false;
 
 	while (!this->bStop)
 	{
+		count++;
 		yuvBufTransfer = getYuv();
 
 		if (yuvBufTransfer)
@@ -117,9 +133,22 @@ void H265EncoderTang::mainLoop()
 			}
 
 			ret = x265_encoder_encode(this->pHandle, &pNals, &iNal, this->pPic_in, NULL);
+			
+			//写文件
+			if (this->file_on)
+			{
+				for (int j = 0; j < iNal; j++) {
+					fwrite(pNals[j].payload, 1, pNals[j].sizeBytes, fp_dst);
+				}
+			}
 
-			for (int j = 0; j < iNal; j++) {
-				fwrite(pNals[j].payload, 1, pNals[j].sizeBytes, fp_dst);
+			//udp发送
+			if (this->upd_on)
+			{
+				for (int j = 0; j < iNal; j++) {
+					memcpy(this->pNal_buf, pNals[j].payload, pNals[j].sizeBytes); //将码流数据复制到buffer中
+					this->udp.send(this->pNal_buf,pNals[j].sizeBytes);
+				}
 			}
 		}
 		else
@@ -127,15 +156,19 @@ void H265EncoderTang::mainLoop()
 			this_thread::sleep_for(chrono::milliseconds(5));
 		}
 	}
-
-	//flush encoder
-	while (1) {
-		ret = x265_encoder_encode(pHandle, &pNals, &iNal, NULL, NULL);
-		if (ret == 0) {
-			break;
-		}
-		for (int j = 0; j < iNal; ++j) {
-			fwrite(pNals[j].payload, 1, pNals[j].sizeBytes, fp_dst);
+	
+	//flush残余码流
+	if (this->file_on)
+	{
+		
+		while (1) {
+			ret = x265_encoder_encode(pHandle, &pNals, &iNal, NULL, NULL);
+			if (ret == 0) {
+				break;
+			}
+			for (int j = 0; j < iNal; ++j) {
+				fwrite(pNals[j].payload, 1, pNals[j].sizeBytes, fp_dst);
+			}
 		}
 	}
 
@@ -144,7 +177,8 @@ void H265EncoderTang::mainLoop()
 	x265_picture_free(this->pPic_in);
 	x265_param_free(this->pParam);
 
-	fclose(fp_dst);
+	if (this->file_on)
+		fclose(fp_dst);
 
 	this->stopQue.push(true);
 }
